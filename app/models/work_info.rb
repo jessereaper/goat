@@ -2,7 +2,7 @@
 class WorkInfo < ApplicationRecord
   belongs_to :user
   has_one :key_management, foreign_key: :user_id, primary_key: :user_id, dependent: :destroy
-  #before_save :encrypt_ssn
+  before_save :encrypt_ssn
 
   # We should probably use this
   def last_four
@@ -10,33 +10,41 @@ class WorkInfo < ApplicationRecord
   end
 
   def encrypt_ssn
-    aes = OpenSSL::Cipher.new(cipher_type)
-    aes.encrypt
-    aes.key = key[0..31]
-    aes.iv = iv if iv != nil
-    self.encrypted_ssn = aes.update(self.SSN) + aes.final
-    self.SSN = nil
+   aes = OpenSSL::Cipher::Cipher.new(cipher_type)
+   aes.encrypt
+   aes.key = key
+   aes.iv = iv if iv != nil
+   self.encrypted_ssn = aes.update(self.SSN) + aes.final
+   self.SSN = nil
   end
 
   def decrypt_ssn
-    aes = OpenSSL::Cipher.new(cipher_type)
-    aes.decrypt
-    aes.key = key[0..31]
-    aes.iv = iv if iv != nil
-    aes.update(self.encrypted_ssn) + aes.final
+     aes = OpenSSL::Cipher::Cipher.new(cipher_type)
+     aes.decrypt
+     aes.key = key
+     aes.iv = iv if iv != nil
+     aes.update(self.encrypted_ssn) + aes.final
   end
 
   def key
-    raise "Key Missing" unless KEY.present?
+    raise "Key Missing" if !(KEY)
     KEY
   end
 
   def iv
-    raise "No IV for this User" unless self.key_management.try(:iv).present?
+    raise "No IV for this User" if !(self.key_management.iv)
     self.key_management.iv
   end
 
   def cipher_type
-    "aes-256-cbc"
+    'aes-256-cbc'
   end
-end
+
+  #work_info.each do |wi|
+   list = [:user_id, :SSN]
+   info = WorkInfo.new(wi.reject {|k| list.include?(k)})
+   info.user_id = wi[:user_id]
+   info.build_key_management({:user_id => wi[:user_id], :iv => SecureRandom.hex(32) })
+   info.SSN = wi[:SSN]
+   info.save
+  end

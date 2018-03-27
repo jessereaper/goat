@@ -9,24 +9,17 @@ class SessionsController < ApplicationController
   end
 
   def create
-    path = params[:url].present? ? params[:url] : home_dashboard_index_path
     begin
-      # Normalize the email address, why not
-      user = User.authenticate(params[:email].to_s.downcase, params[:password])
-    rescue RuntimeError => e
-      # don't do ANYTHING
+      user = User.authenticate(params[:email], params[:password])
+    rescue Exception => e
     end
 
     if user
-      if params[:remember_me]
-        cookies.permanent[:auth_token] = user.auth_token
-      else
-        session[:user_id] = user.id
-      end
-      redirect_to path
+      session[:user_id] = user.id if User.where(:id => user.id).exists?
+      redirect_to home_dashboard_index_path
     else
-      flash[:error] = e.message
-      render "sessions/new"
+      flash[:error] =  "Either your username and password is incorrect" #e.message
+      render "new"
     end
   end
 

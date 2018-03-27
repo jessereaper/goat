@@ -3,7 +3,8 @@ class AdminController < ApplicationController
   before_action :administrative, if: :admin_param, except: [:get_user]
   skip_before_action :has_info
   layout false, only: [:get_all_users, :get_user]
-
+  before_filter :administrative
+  
   def dashboard
   end
 
